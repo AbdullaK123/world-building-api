@@ -1,0 +1,42 @@
+services:
+  surreal_db:
+    image: surrealdb/surrealdb:latest
+    container_name: surreal_db
+    ports:
+      - 8000:8000
+    volumes:
+      - app_data:/data
+    command:
+      - start
+      - --log=trace
+      - --user=root
+      - --pass=root
+      - rocksdb:/data/database.db
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+    networks:
+      - app_network
+
+  api:
+    build: .
+    container_name: world_building_api
+    ports:
+      - 8001:8001
+    depends_on:
+      surreal_db:
+        condition: service_healthy
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  app_data:
